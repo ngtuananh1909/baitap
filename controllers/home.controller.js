@@ -300,37 +300,36 @@ exports.AddToCart = async (req, res) => {
     try {
         const { productId } = req.body;
         if (!req.session.user) {
-            return res.render('login', { message: 'Please log in to add items to your cart' });
+            return res.status(401).send('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
         }
         const userId = req.session.user.id;
-        db.query('SELECT * FROM products WHERE id = ?', [productId], (error, results) => {
+
+        db.query('SELECT * FROM user_cart WHERE user_id = ? AND product_id = ?', [userId, productId], (error, results) => {
             if (error) {
-                console.log('Error checking product:', error);
-                return res.status(500).send('Server error occurred');
+                console.log('Error checking cart:', error);
+                return res.status(500).send('Đã xảy ra lỗi server');
             }
 
-            if (results.length === 0) {
-                return res.status(404).send('Product not found');
+            if (results.length > 0) {
+                return res.status(400).send('Sản phẩm đã có trong giỏ hàng của bạn');
             }
 
-            if(results.length > 0){
-                return res.status(404).send('Product is already in your cart')
-            }
-
+            // Thêm sản phẩm vào giỏ hàng
             db.query('INSERT INTO user_cart SET ?', { user_id: userId, product_id: productId }, (err) => {
                 if (err) {
                     console.log('Error adding to cart:', err);
-                    return res.status(500).send('Error adding to cart');
+                    return res.status(500).send('Đã xảy ra lỗi khi thêm vào giỏ hàng');
                 }
 
-                return res.redirect('back'); 
+                return res.status(200).send('Sản phẩm đã được thêm vào giỏ hàng');
             });
         });
     } catch (err) {
         console.log('Server error:', err);
-        return res.status(500).send('Server error occurred');
+        return res.status(500).send('Đã xảy ra lỗi server');
     }
 };
+
 
 exports.ProfileDisplay = (req, res) => {
     if (!req.session || !req.session.user) {
